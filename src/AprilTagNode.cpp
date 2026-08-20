@@ -223,6 +223,16 @@ AprilTagNode::AprilTagNode(const rclcpp::NodeOptions& options)
                 bundle_tag_orientations_[id] = {orient[0], orient[1], orient[2]};
             }
         }
+        const auto bundle_sizes = declare_parameter("tag_bundle.sizes", std::vector<double>{}, descr("optional per-tag edge sizes for bundle tags", true));
+        if(!bundle_sizes.empty()) {
+            if(bundle_sizes.size() != bundle_ids.size()) {
+                throw std::runtime_error("Number of bundle tag ids (" + std::to_string(bundle_ids.size()) +
+                                         ") and sizes (" + std::to_string(bundle_sizes.size()) + ") mismatch!");
+            }
+            for(size_t i = 0; i < bundle_ids.size(); i++) {
+                tag_sizes[bundle_ids[i]] = bundle_sizes[i];
+            }
+        }
         const auto bundle_world_pos = declare_parameter("tag_bundle.position", std::vector<double>{}, descr("bundle origin in world frame", true));
         if(bundle_world_pos.size() >= 3) {
             has_bundle_world_position_ = true;
