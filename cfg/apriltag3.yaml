@@ -35,7 +35,6 @@
       frame: landing_bundle # frame name for the bundle TF
       ids: [0, 1, 2, 3, 4, 5, 6, 7] # IDs of tags in the bundle
       sizes: [0.2, 0.2, 0.2, 0.2, 0.04, 0.04, 0.04, 0.04] # optional: per-tag edge sizes in the bundle (must match ids count)
-
       positions: # tag position in bundle frame [x, y, z]
         0: [-0.5, 0.5, 0.0]
         1: [0.5, 0.5, 0.0]
@@ -48,5 +47,5 @@
       # orientations:
       #   0: [0.0, 0.0, 0.0] # optional: per-tag RPY in bundle frame [roll, pitch, yaw] in radians
 
-      position: [5.0, 0.0, 0.0] # optional: bundle origin in world_frame
-      orientation: [0.0, 0.0, -1.5708] # optional: bundle RPY in world_frame [roll, pitch, yaw] in radians
+      position: [-5.0, 5.0, 0.0] # optional: bundle origin in world_frame
+      orientation: [0.0, 0.0, 1.5708] # optional: bundle RPY in world_frame [roll, pitch, yaw] in radians
