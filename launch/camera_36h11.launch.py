@@ -15,6 +15,14 @@ def generate_launch_description():
         "camera_info_url",
         default_value="package://apriltag_ros/calibration/camera.yaml",
     )
+    config_path_arg = DeclareLaunchArgument(
+        "config_path",
+        default_value="tags_36h11.yaml",
+    )
+
+    config_path = PathJoinSubstitution(
+        [FindPackageShare("apriltag_ros"), "cfg", LaunchConfiguration("config_path")]
+    )
 
     container = ComposableNodeContainer(
         name="apriltag_container",
@@ -56,13 +64,7 @@ def generate_launch_description():
                     ("/camera/camera_info", "/camera/camera_info"),
                 ],
                 parameters=[
-                    PathJoinSubstitution(
-                        [
-                            FindPackageShare("apriltag_ros"),
-                            "cfg",
-                            "tags_36h11.yaml",
-                        ]
-                    ),
+                    config_path,
                 ],
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
@@ -73,6 +75,7 @@ def generate_launch_description():
         [
             device_arg,
             camera_info_url_arg,
+            config_path_arg,
             container,
         ]
     )
