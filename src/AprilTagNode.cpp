@@ -3,6 +3,7 @@
 #include <apriltag_msgs/msg/april_tag_detection.hpp>
 #include <apriltag_msgs/msg/april_tag_detection_array.hpp>
 #include <array>
+#include <cmath>
 #ifdef cv_bridge_HPP
 #include <cv_bridge/cv_bridge.hpp>
 #else
@@ -103,6 +104,7 @@ private:
     tf2_ros::TransformBroadcaster tf_broadcaster;
 
     pose_estimation_f estimate_pose = nullptr;
+    std::string pose_estimation_method_;
 
     void onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_img, const sensor_msgs::msg::CameraInfo::ConstSharedPtr& msg_ci);
 
@@ -157,9 +159,10 @@ AprilTagNode::AprilTagNode(const rclcpp::NodeOptions& options)
     // get method for estimating tag pose
     const std::string& pose_estimation_method =
         declare_parameter("pose_estimation_method", "pnp",
-                          descr("pose estimation method: \"pnp\" (more accurate) or \"homography\" (faster), "
-                                "set to \"\" (empty) to disable pose estimation",
+                          descr("pose estimation method: \"pnp\" (more accurate), \"ippe\" (planar ambiguity-aware) or "
+                                "\"homography\" (faster), set to \"\" (empty) to disable pose estimation",
                                 true));
+    pose_estimation_method_ = pose_estimation_method;
 
     if(!pose_estimation_method.empty()) {
         if(pose_estimation_methods.count(pose_estimation_method)) {
@@ -339,11 +342,25 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
             tf.child_frame_id = msg_img->header.frame_id;
             // tf.child_frame_id = tag_frames.count(det->id) ? tag_frames.at(det->id) : std::string(det->family->name) + ":" + std::to_string(det->id);
             const double size = tag_sizes.count(det->id) ? tag_sizes.at(det->id) : tag_edge_size;
-            geometry_msgs::msg::Transform transform = estimate_pose(det, intrinsics, size);
+            geometry_msgs::msg::Transform transform;
+            if(pose_estimation_method_ == "ippe") {
+                double ratio = 0.0;
+                transform = ippe(det, intrinsics, size, &ratio);
+                RCLCPP_DEBUG(get_logger(), "ippe tag %d: ambiguity ratio %.3f (near 1.0 = flip likely)", det->id, ratio);
+            }
+            else {
+                transform = estimate_pose(det, intrinsics, size);
+            }
             tf2::Transform tf2_transform;
             tf2::convert(transform, tf2_transform);
             tf2::Transform tf2_transform_inv = tf2_transform.inverse();
             tf2::convert(tf2_transform_inv, transform);
+            // camera below pad = flipped pose; drop frame, hold last-good
+            if(!std::isfinite(transform.translation.z) || transform.translation.z < 0.0) {
+                RCLCPP_DEBUG(get_logger(), "dropping tag %d pose with negative height %.3f", det->id,
+                             transform.translation.z);
+                continue;
+            }
             tf.transform = transform;
             pose.pose.position.x = transform.translation.x;
             pose.pose.position.y = transform.translation.y;
@@ -373,8 +390,16 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
 
     // Bundle pose estimation: use all detected bundle tags jointly
     if(!bundle_frame_.empty() && !bundle_dets.empty()) {
-        geometry_msgs::msg::Transform transform = bundle_pnp(
-            bundle_dets, intrinsics, bundle_tag_positions_, tag_sizes, tag_edge_size);
+        geometry_msgs::msg::Transform transform;
+        if(pose_estimation_method_ == "ippe") {
+            double ratio = 0.0;
+            transform = bundle_ippe(bundle_dets, intrinsics, bundle_tag_positions_, tag_sizes, tag_edge_size, &ratio);
+            RCLCPP_DEBUG(get_logger(), "bundle ippe (%zu tags): ambiguity ratio %.3f (near 1.0 = flip likely)",
+                         bundle_dets.size(), ratio);
+        }
+        else {
+            transform = bundle_pnp(bundle_dets, intrinsics, bundle_tag_positions_, tag_sizes, tag_edge_size);
+        }
 
         geometry_msgs::msg::TransformStamped bundle_tf;
         bundle_tf.header.frame_id = bundle_frame_;
@@ -385,8 +410,15 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
         tf2::convert(transform, tf2_transform);
         tf2::Transform tf2_transform_inv = tf2_transform.inverse();
         tf2::convert(tf2_transform_inv, transform);
-        bundle_tf.transform = transform;
-        tfs.push_back(bundle_tf);
+        // camera below pad = flipped pose; drop frame, hold last-good
+        const bool bundle_valid = std::isfinite(transform.translation.z) && transform.translation.z >= 0.0;
+        if(!bundle_valid) {
+            RCLCPP_DEBUG(get_logger(), "dropping bundle pose with negative height %.3f", transform.translation.z);
+        }
+        else {
+            bundle_tf.transform = transform;
+            tfs.push_back(bundle_tf);
+        }
 
         // world frame -> bundle frame static transform
         if(has_bundle_world_position_ || has_bundle_world_orientation_) {
@@ -444,14 +476,16 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
         }
 
         // publish bundle pose (camera in bundle frame)
-        geometry_msgs::msg::PoseStamped pose;
-        pose.header.frame_id = bundle_frame_;
-        pose.header.stamp = msg_img->header.stamp;
-        pose.pose.position.x = transform.translation.x;
-        pose.pose.position.y = transform.translation.y;
-        pose.pose.position.z = transform.translation.z;
-        pose.pose.orientation = transform.rotation;
-        pub_pose->publish(pose);
+        if(bundle_valid) {
+            geometry_msgs::msg::PoseStamped pose;
+            pose.header.frame_id = bundle_frame_;
+            pose.header.stamp = msg_img->header.stamp;
+            pose.pose.position.x = transform.translation.x;
+            pose.pose.position.y = transform.translation.y;
+            pose.pose.position.z = transform.translation.z;
+            pose.pose.orientation = transform.rotation;
+            pub_pose->publish(pose);
+        }
     }
 
     pub_detections->publish(msg_detections);
