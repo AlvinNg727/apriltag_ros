@@ -17,7 +17,8 @@ geometry_msgs::msg::Transform bundle_pnp(
     const std::array<double, 4>& intrinsics,
     const std::unordered_map<int, std::array<double, 3>>& bundle_tag_positions,
     const std::unordered_map<int, double>& tag_sizes,
-    double default_size);
+    double default_size,
+    const std::unordered_map<int, std::array<double, 3>>& bundle_tag_orientations = {});
 
 // IPPE variants (best-of-2 by reprojection error, always publishes).
 // Single tag uses IPPE_SQUARE (exactly 4 points); bundle uses IPPE (coplanar N points).
@@ -31,4 +32,5 @@ geometry_msgs::msg::Transform bundle_ippe(
     const std::unordered_map<int, std::array<double, 3>>& bundle_tag_positions,
     const std::unordered_map<int, double>& tag_sizes,
     double default_size,
-    double* ambiguity_ratio = nullptr);
+    double* ambiguity_ratio = nullptr,
+    const std::unordered_map<int, std::array<double, 3>>& bundle_tag_orientations = {});

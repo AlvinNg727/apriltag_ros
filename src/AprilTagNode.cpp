@@ -221,7 +221,7 @@ AprilTagNode::AprilTagNode(const rclcpp::NodeOptions& options)
                 bundle_tag_positions_[id] = {pos[0], pos[1], pos[2]};
             }
             const auto orient_key = std::string("tag_bundle.orientations.") + std::to_string(id);
-            const auto orient = declare_parameter(orient_key, std::vector<double>{}, descr("tag orientation in bundle frame [roll, pitch, yaw] in radians", true));
+            const auto orient = declare_parameter(orient_key, std::vector<double>{}, descr("tag orientation delta in bundle frame [roll, pitch, yaw] in radians, composed on default yaw -pi/2 (missing = default)", true));
             if(orient.size() >= 3) {
                 bundle_tag_orientations_[id] = {orient[0], orient[1], orient[2]};
             }
@@ -339,7 +339,8 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
             // pose.header = msg_img->header;
             pose.header.frame_id = tag_frames.count(det->id) ? tag_frames.at(det->id) : std::string(det->family->name) + ":" + std::to_string(det->id);
             // set child frame name by generic tag name or configured tag name
-            tf.child_frame_id = msg_img->header.frame_id;
+            // dedicated frame so this never steals camera_link from the mount TF
+            tf.child_frame_id = "apriltag_camera_optical";
             // tf.child_frame_id = tag_frames.count(det->id) ? tag_frames.at(det->id) : std::string(det->family->name) + ":" + std::to_string(det->id);
             const double size = tag_sizes.count(det->id) ? tag_sizes.at(det->id) : tag_edge_size;
             geometry_msgs::msg::Transform transform;
@@ -393,18 +394,21 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
         geometry_msgs::msg::Transform transform;
         if(pose_estimation_method_ == "ippe") {
             double ratio = 0.0;
-            transform = bundle_ippe(bundle_dets, intrinsics, bundle_tag_positions_, tag_sizes, tag_edge_size, &ratio);
+            transform = bundle_ippe(bundle_dets, intrinsics, bundle_tag_positions_, tag_sizes, tag_edge_size, &ratio,
+                                    bundle_tag_orientations_);
             RCLCPP_DEBUG(get_logger(), "bundle ippe (%zu tags): ambiguity ratio %.3f (near 1.0 = flip likely)",
                          bundle_dets.size(), ratio);
         }
         else {
-            transform = bundle_pnp(bundle_dets, intrinsics, bundle_tag_positions_, tag_sizes, tag_edge_size);
+            transform = bundle_pnp(bundle_dets, intrinsics, bundle_tag_positions_, tag_sizes, tag_edge_size,
+                                   bundle_tag_orientations_);
         }
 
         geometry_msgs::msg::TransformStamped bundle_tf;
         bundle_tf.header.frame_id = bundle_frame_;
         bundle_tf.header.stamp = msg_img->header.stamp;
-        bundle_tf.child_frame_id = msg_img->header.frame_id;
+        // dedicated frame so this never steals camera_link from the mount TF
+        bundle_tf.child_frame_id = "apriltag_camera_optical";
 
         tf2::Transform tf2_transform;
         tf2::convert(transform, tf2_transform);
@@ -458,20 +462,20 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
             tag_tf.transform.translation.x = pos[0];
             tag_tf.transform.translation.y = pos[1];
             tag_tf.transform.translation.z = pos[2];
+            // default tag orientation: yaw -pi/2; config entry is a delta (q_default * q_config)
+            tf2::Quaternion q_default;
+            q_default.setRPY(0.0, 0.0, -M_PI / 2.0);
+            tf2::Quaternion q = q_default;
             if(bundle_tag_orientations_.count(det->id)) {
                 const auto& ori = bundle_tag_orientations_.at(det->id);
-                tf2::Quaternion q;
-                q.setRPY(ori[0], ori[1], ori[2]);
-                tag_tf.transform.rotation.x = q.x();
-                tag_tf.transform.rotation.y = q.y();
-                tag_tf.transform.rotation.z = q.z();
-                tag_tf.transform.rotation.w = q.w();
+                tf2::Quaternion q_cfg;
+                q_cfg.setRPY(ori[0], ori[1], ori[2]);
+                q = q_default * q_cfg;
             }
-            else {
-                // default: ENU -> tag_frame rotation (yaw -pi/2)
-                tag_tf.transform.rotation.z = -0.707107;
-                tag_tf.transform.rotation.w = 0.707107;
-            }
+            tag_tf.transform.rotation.x = q.x();
+            tag_tf.transform.rotation.y = q.y();
+            tag_tf.transform.rotation.z = q.z();
+            tag_tf.transform.rotation.w = q.w();
             tfs.push_back(tag_tf);
         }
 

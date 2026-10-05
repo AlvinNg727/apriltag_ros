@@ -6,6 +6,36 @@
 #include <opencv2/calib3d.hpp>
 #include <tf2/convert.hpp>
 
+// Default tag orientation in bundle frame: yaw -pi/2 (ENU -> tag frame).
+// Config `orientations` entries are deltas composed as q_default * q_config,
+// so a missing entry (or [0,0,0]) yields the default.
+static void addBundleTagCorners(
+    std::vector<cv::Point3d>& objectPoints,
+    const std::array<double, 3>& pos,
+    double hs,
+    const std::unordered_map<int, std::array<double, 3>>& orientations,
+    int id)
+{
+    static constexpr double kCorner[4][2] = {{-1.0, -1.0}, {+1.0, -1.0}, {+1.0, +1.0}, {-1.0, +1.0}};
+
+    const Eigen::Quaterniond q_default(
+        Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitZ()));
+    Eigen::Quaterniond q = q_default;
+    if(orientations.count(id)) {
+        const auto& rpy = orientations.at(id);
+        const Eigen::Quaterniond q_cfg =
+            Eigen::AngleAxisd(rpy[2], Eigen::Vector3d::UnitZ()) *
+            Eigen::AngleAxisd(rpy[1], Eigen::Vector3d::UnitY()) *
+            Eigen::AngleAxisd(rpy[0], Eigen::Vector3d::UnitX());
+        q = q_default * q_cfg;
+    }
+
+    for(const auto& c : kCorner) {
+        const Eigen::Vector3d r = q * Eigen::Vector3d(c[0] * hs, c[1] * hs, 0.0);
+        objectPoints.emplace_back(pos[0] + r.x(), pos[1] + r.y(), pos[2] + r.z());
+    }
+}
+
 
 geometry_msgs::msg::Transform
 homography(apriltag_detection_t* const detection, const std::array<double, 4>& intr, double tagsize)
@@ -111,7 +141,8 @@ bundle_pnp(
     const std::array<double, 4>& intr,
     const std::unordered_map<int, std::array<double, 3>>& bundle_tag_positions,
     const std::unordered_map<int, double>& tag_sizes,
-    double default_size)
+    double default_size,
+    const std::unordered_map<int, std::array<double, 3>>& bundle_tag_orientations)
 {
     std::vector<cv::Point3d> objectPoints;
     std::vector<cv::Point2d> imagePoints;
@@ -124,10 +155,7 @@ bundle_pnp(
         const double size = tag_sizes.count(det->id) ? tag_sizes.at(det->id) : default_size;
         const double hs = size / 2.0;
 
-        objectPoints.emplace_back(pos[0] - hs, pos[1] - hs, pos[2]);
-        objectPoints.emplace_back(pos[0] + hs, pos[1] - hs, pos[2]);
-        objectPoints.emplace_back(pos[0] + hs, pos[1] + hs, pos[2]);
-        objectPoints.emplace_back(pos[0] - hs, pos[1] + hs, pos[2]);
+        addBundleTagCorners(objectPoints, pos, hs, bundle_tag_orientations, det->id);
 
         for(int i = 0; i < 4; i++) {
             imagePoints.emplace_back(det->p[i][0], det->p[i][1]);
@@ -154,7 +182,8 @@ bundle_ippe(
     const std::unordered_map<int, std::array<double, 3>>& bundle_tag_positions,
     const std::unordered_map<int, double>& tag_sizes,
     double default_size,
-    double* ambiguity_ratio)
+    double* ambiguity_ratio,
+    const std::unordered_map<int, std::array<double, 3>>& bundle_tag_orientations)
 {
     std::vector<cv::Point3d> objectPoints;
     std::vector<cv::Point2d> imagePoints;
@@ -167,10 +196,7 @@ bundle_ippe(
         const double size = tag_sizes.count(det->id) ? tag_sizes.at(det->id) : default_size;
         const double hs = size / 2.0;
 
-        objectPoints.emplace_back(pos[0] - hs, pos[1] - hs, pos[2]);
-        objectPoints.emplace_back(pos[0] + hs, pos[1] - hs, pos[2]);
-        objectPoints.emplace_back(pos[0] + hs, pos[1] + hs, pos[2]);
-        objectPoints.emplace_back(pos[0] - hs, pos[1] + hs, pos[2]);
+        addBundleTagCorners(objectPoints, pos, hs, bundle_tag_orientations, det->id);
 
         for(int i = 0; i < 4; i++) {
             imagePoints.emplace_back(det->p[i][0], det->p[i][1]);
@@ -185,7 +211,7 @@ bundle_ippe(
 
     if(objectPoints.size() < 4) {
         if(ambiguity_ratio) *ambiguity_ratio = 0.0;
-        return bundle_pnp(detections, intr, bundle_tag_positions, tag_sizes, default_size);
+        return bundle_pnp(detections, intr, bundle_tag_positions, tag_sizes, default_size, bundle_tag_orientations);
     }
 
     std::vector<cv::Mat> rvecs, tvecs;
@@ -194,7 +220,7 @@ bundle_ippe(
                                             cv::SOLVEPNP_IPPE, cv::noArray(), cv::noArray(), errs)) < 1 ||
        rvecs.empty() || tvecs.empty()) {
         if(ambiguity_ratio) *ambiguity_ratio = 0.0;
-        return bundle_pnp(detections, intr, bundle_tag_positions, tag_sizes, default_size);
+        return bundle_pnp(detections, intr, bundle_tag_positions, tag_sizes, default_size, bundle_tag_orientations);
     }
 
     size_t best = 0;
