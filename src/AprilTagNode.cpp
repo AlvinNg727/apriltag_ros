@@ -436,7 +436,9 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
                 tag_tf.transform.rotation.w = q.w();
             }
             else {
-                tag_tf.transform.rotation.w = 1.0;
+                // default: ENU -> tag_frame rotation (yaw -pi/2)
+                tag_tf.transform.rotation.z = -0.707107;
+                tag_tf.transform.rotation.w = 0.707107;
             }
             tfs.push_back(tag_tf);
         }
