@@ -1,0 +1,30 @@
+/**:
+  ros__parameters:
+    image_transport: raw # image format
+    family: 36h11 # tag family name
+    size: 0.5 # tag edge size in meter (matches Apriltag36_11_large_00000)
+    max_hamming: 0 # maximum allowed hamming distance (corrected bits)
+    qos_profile: sensor_data # optional qos_profile, "sensor_data", "default", or "system_default"
+    world_frame: map # optional world frame name for tag positions
+
+    # see "apriltag.h" 'struct apriltag_detector' for more documentation on these optional parameters
+    detector:
+      threads: 1 # number of threads
+      decimate: 1.0 # decimate resolution for quad detection
+      blur: 0.0 # sigma of Gaussian blur for quad detection
+      refine: True # snap to strong gradients
+      sharpening: 0.25 # sharpening of decoded images
+      debug: False # write additional debugging images to current working directory
+
+    pose_estimation_method: "pnp" # method for estimating the tag pose
+
+    # single large tag (perf test) as a one-tag bundle
+    tag_bundle:
+      frame: landing_bundle # frame name for the bundle TF
+      ids: [0] # IDs of tags in the bundle
+      sizes: [0.5] # optional: per-tag edge sizes in the bundle (must match ids count)
+      positions: # tag position in bundle frame [x, y, z]
+        "0": [0.0, 0.0, 0.0]
+
+      position: [5.0, 0.0, 0.0] # optional: bundle origin in world_frame
+      orientation: [0.0, 0.0, 0.0] # optional: bundle RPY in world_frame [roll, pitch, yaw] in radians

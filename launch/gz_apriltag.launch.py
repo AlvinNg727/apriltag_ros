@@ -37,7 +37,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "world",
                 default_value="apriltag1",
-                description="Gazebo world / apriltag bundle to detect (apriltag1-6)",
+                description="Gazebo world / apriltag bundle to detect (apriltag1-6, apriltag_single)",
             ),
             OpaqueFunction(function=_setup),
         ]

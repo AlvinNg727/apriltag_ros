@@ -40,12 +40,12 @@
         "1": [0.5, -0.5, 0.0]
         "2": [-0.5, -0.5, 0.0]
         "3": [-0.5, 0.5, 0.0]
-        "4": [0.35, 0.25, 0.0]
-        "5": [0.25, 0.15, 0.0]
-        "6": [0.15, 0.25, 0.0]
-        "7": [0.25, 0.35, 0.0]
-      # orientations:
-      #   0: [0.0, 0.0, 0.0] # optional: per-tag RPY in bundle frame [roll, pitch, yaw] in radians
+        "4": [0.1, 0.0, 0.0]
+        "5": [0.0, -0.1, 0.0]
+        "6": [-0.1, 0.0, 0.0]
+        "7": [0.0, 0.1, 0.0]
+      # orientations: # optional tag orientation delta in bundle frame [roll, pitch, yaw] in radians, composed on default yaw -pi/2 (missing = default)
+      #   e.g. "4": [0.0, 0.0, 1.5707963] for net zero yaw on tag 4
 
       position: [-5.0, 5.0, 0.0] # optional: bundle origin in world_frame
       orientation: [0.0, 0.0, 3.14159] # optional: bundle RPY in world_frame [roll, pitch, yaw] in radians
