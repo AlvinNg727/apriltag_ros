@@ -20,7 +20,7 @@ def generate_launch_description():
                 package="usb_cam",
                 plugin="usb_cam::UsbCamNode",
                 name="camera_node",
-                namespace="camera",
+                namespace="down_camera",
                 parameters=[{"video_device": LaunchConfiguration("device")}],
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
@@ -38,8 +38,8 @@ def generate_launch_description():
             LaunchConfiguration("square"),
         ],
         remappings=[
-            ("image", "/camera/image_raw"),
-            ("camera", "/camera/camera_info"),
+            ("image", "/down_camera/image_raw"),
+            ("camera", "/down_camera/camera_info"),
         ],
         output="screen",
     )

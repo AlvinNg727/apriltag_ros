@@ -339,7 +339,7 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
             // pose.header = msg_img->header;
             pose.header.frame_id = tag_frames.count(det->id) ? tag_frames.at(det->id) : std::string(det->family->name) + ":" + std::to_string(det->id);
             // set child frame name by generic tag name or configured tag name
-            // dedicated frame so this never steals camera_link from the mount TF
+            // dedicated frame so this never steals down_camera_optical_frame from the mount TF
             tf.child_frame_id = "apriltag_camera_optical";
             // tf.child_frame_id = tag_frames.count(det->id) ? tag_frames.at(det->id) : std::string(det->family->name) + ":" + std::to_string(det->id);
             const double size = tag_sizes.count(det->id) ? tag_sizes.at(det->id) : tag_edge_size;
@@ -407,7 +407,7 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
         geometry_msgs::msg::TransformStamped bundle_tf;
         bundle_tf.header.frame_id = bundle_frame_;
         bundle_tf.header.stamp = msg_img->header.stamp;
-        // dedicated frame so this never steals camera_link from the mount TF
+        // dedicated frame so this never steals down_camera_optical_frame from the mount TF
         bundle_tf.child_frame_id = "apriltag_camera_optical";
 
         tf2::Transform tf2_transform;

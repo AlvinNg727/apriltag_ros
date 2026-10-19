@@ -69,8 +69,8 @@ See [tags_36h11.yaml](cfg/tags_36h11.yaml) for an example configuration that pub
 The `apriltag_node` executable can be launched with topic remappings and a configuration file:
 ```sh
 ros2 run apriltag_ros apriltag_node --ros-args \
-    -r image_rect:=/camera/image \
-    -r camera_info:=/camera/camera_info \
+    -r image_rect:=/down_camera/image \
+    -r camera_info:=/down_camera/camera_info \
     --params-file `ros2 pkg prefix apriltag_ros`/share/apriltag_ros/cfg/tags_36h11.yaml
 ```
 

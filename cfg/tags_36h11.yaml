@@ -2,7 +2,7 @@
   ros__parameters:
     image_transport: raw # image format
     family: 36h11 # tag family name
-    size: 0.2 # tag edge size in meter
+    size: 0.4 # tag edge size in meter
     max_hamming: 0 # maximum allowed hamming distance (corrected bits)
     qos_profile: sensor_data # optional qos_profile, "sensor_data", "default", or "system_default"
     world_frame: map # optional world frame name for tag positions
@@ -33,17 +33,10 @@
     # (enabled when tag_bundle.frame is non-empty)
     tag_bundle:
       frame: landing_bundle # frame name for the bundle TF
-      ids: [0, 1, 2, 3, 4, 5, 6, 7] # IDs of tags in the bundle
-      sizes: [0.2, 0.2, 0.2, 0.2, 0.04, 0.04, 0.04, 0.04] # optional: per-tag edge sizes in the bundle (must match ids count)
+      ids: [0] # IDs of tags in the bundle
+      sizes: [0.4] # optional: per-tag edge sizes in the bundle (must match ids count)
       positions: # tag position in bundle frame [x, y, z]
-        "0": [0.5, 0.5, 0.0]
-        "1": [0.5, -0.5, 0.0]
-        "2": [-0.5, -0.5, 0.0]
-        "3": [-0.5, 0.5, 0.0]
-        "4": [0.1, 0.0, 0.0]
-        "5": [0.0, -0.1, 0.0]
-        "6": [-0.1, 0.0, 0.0]
-        "7": [0.0, 0.1, 0.0]
+        "0": [0.0, 0.0, 0.0]
       # orientations: # optional tag orientation delta in bundle frame [roll, pitch, yaw] in radians, composed on default yaw -pi/2 (missing = default)
       #   e.g. "4": [0.0, 0.0, 1.5707963] for net zero yaw on tag 4
 

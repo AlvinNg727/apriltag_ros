@@ -13,7 +13,7 @@ def generate_launch_description():
     )
     camera_info_url_arg = DeclareLaunchArgument(
         "camera_info_url",
-        default_value="package://apriltag_ros/calibration/camera.yaml",
+        default_value="package://apriltag_ros/cfg/camera/camera.yaml",
     )
     config_path_arg = DeclareLaunchArgument(
         "config_path",
@@ -34,7 +34,7 @@ def generate_launch_description():
                 package="usb_cam",
                 plugin="usb_cam::UsbCamNode",
                 name="camera_node",
-                namespace="camera",
+                namespace="down_camera",
                 parameters=[
                     {
                         "video_device": LaunchConfiguration("device"),
@@ -47,10 +47,10 @@ def generate_launch_description():
                 package="image_proc",
                 plugin="image_proc::RectifyNode",
                 name="rectify_node",
-                namespace="camera",
+                namespace="down_camera",
                 remappings=[
-                    ("image", "/camera/image_raw"),
-                    ("camera_info", "/camera/camera_info"),
+                    ("image", "/down_camera/image_raw"),
+                    ("camera_info", "/down_camera/camera_info"),
                 ],
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
@@ -60,8 +60,8 @@ def generate_launch_description():
                 name="apriltag_node",
                 namespace="apriltag",
                 remappings=[
-                    ("/apriltag/image_rect", "/camera/image_rect"),
-                    ("/camera/camera_info", "/camera/camera_info"),
+                    ("/apriltag/image_rect", "/down_camera/image_rect"),
+                    ("/camera/camera_info", "/down_camera/camera_info"),
                 ],
                 parameters=[
                     config_path,

@@ -153,6 +153,11 @@ install(DIRECTORY launch
     DESTINATION share/${PROJECT_NAME}
 )
 
+install(PROGRAMS scripts/camera_pub.py
+    DESTINATION lib/${PROJECT_NAME}
+    RENAME camera_pub
+)
+
 if(BUILD_TESTING)
   set(ament_cmake_clang_format_CONFIG_FILE "${CMAKE_SOURCE_DIR}/.clang-format")
   find_package(ament_lint_auto REQUIRED)
