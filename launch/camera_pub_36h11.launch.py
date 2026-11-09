@@ -7,7 +7,10 @@ from launch import LaunchDescription
 
 
 def generate_launch_description():
-    device = DeclareLaunchArgument("device", default_value="/dev/video0")
+    device = DeclareLaunchArgument(
+        "device",
+        default_value="/dev/v4l/by-id/usb-TSTC_USB20_WEB_CAMERA_TSTC_USB20_WEB_CAMERA_01.00.00-video-index0",
+    )
     config_path = DeclareLaunchArgument(
         "config_path",
         default_value="tags_36h11.yaml",
@@ -34,9 +37,7 @@ def generate_launch_description():
             ("image", "/down_camera/image_raw"),
             ("camera_info", "/down_camera/camera_info"),
         ],
-        parameters=[{
-            "image_transport_plugins": ["raw"]
-        }],
+        parameters=[{"image_transport_plugins": ["raw"]}],
     )
 
     apriltag = Node(
@@ -46,8 +47,8 @@ def generate_launch_description():
         namespace="apriltag",
         output="screen",
         remappings=[
-            # ("image_rect", "/down_camera/image_rect"),
-            ("image_rect", "/down_camera/image_raw"),
+            ("image_rect", "/down_camera/image_rect"),
+            # ("image_rect", "/down_camera/image_raw"),
             ("camera_info", "/down_camera/camera_info"),
         ],
         parameters=[
@@ -61,5 +62,5 @@ def generate_launch_description():
         ],
     )
 
-    # return LaunchDescription([device, config_path, camera, rectify, apriltag])
-    return LaunchDescription([device, config_path, camera, apriltag])
+    return LaunchDescription([device, config_path, camera, rectify, apriltag])
+    # return LaunchDescription([device, config_path, camera, apriltag])

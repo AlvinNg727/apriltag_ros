@@ -5,7 +5,10 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    device = DeclareLaunchArgument("device", default_value="/dev/video0")
+    device = DeclareLaunchArgument(
+        "device",
+        default_value="/dev/v4l/by-id/usb-TSTC_USB20_WEB_CAMERA_TSTC_USB20_WEB_CAMERA_01.00.00-video-index0",
+    )
     size = DeclareLaunchArgument("size", default_value="8x6")
     square = DeclareLaunchArgument("square", default_value="0.025")
 
