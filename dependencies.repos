@@ -1,5 +1,5 @@
 repositories:
   usb_cam:
     type: git
-    url: https://github.com/ros-drivers/usb_cam.git
+    url: https://github.com/AlvinNg727/usb_cam.git
     version: main
