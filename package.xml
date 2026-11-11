@@ -20,10 +20,9 @@
     <depend>apriltag</depend>
     <depend>image_transport</depend>
     <depend>cv_bridge</depend>
+    <depend>camera_info_manager</depend>
+    <depend>libopencv-dev</depend>
 
-    <exec_depend>rclpy</exec_depend>
-    <exec_depend>camera_info_manager</exec_depend>
-    <exec_depend>python3-opencv</exec_depend>
     <exec_depend>usb_cam</exec_depend>
     <exec_depend>camera_calibration</exec_depend>
     <exec_depend>image_proc</exec_depend>

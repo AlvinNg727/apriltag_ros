@@ -43,9 +43,10 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(camera_info_manager REQUIRED)
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(Threads REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core calib3d)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio calib3d)
 find_package(apriltag 3.2 REQUIRED)
 
 if(cv_bridge_VERSION VERSION_GREATER_EQUAL 3.3.0)
@@ -138,9 +139,32 @@ rclcpp_components_register_node(AprilTagNode
     EXECUTABLE "apriltag_node"
 )
 
+
+# V4L2 camera publisher component
+add_library(CameraPublisherNode SHARED
+    src/CameraPublisherNode.cpp
+)
+target_link_libraries(CameraPublisherNode
+  PUBLIC
+    camera_info_manager::camera_info_manager
+    cv_bridge::cv_bridge
+    image_transport::image_transport
+    opencv_core
+    opencv_imgproc
+    opencv_videoio
+    rclcpp::rclcpp
+    rclcpp_components::component
+    rclcpp_components::component_manager
+    sensor_msgs::sensor_msgs_library
+)
+rclcpp_components_register_node(CameraPublisherNode
+    PLUGIN "CameraPublisherNode"
+    EXECUTABLE "camera_pub"
+)
+
 ament_environment_hooks(${ament_cmake_package_templates_ENVIRONMENT_HOOK_LIBRARY_PATH})
 
-install(TARGETS AprilTagNode
+install(TARGETS AprilTagNode CameraPublisherNode
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
 )
@@ -151,11 +175,6 @@ install(DIRECTORY cfg
 
 install(DIRECTORY launch
     DESTINATION share/${PROJECT_NAME}
-)
-
-install(PROGRAMS scripts/camera_pub.py
-    DESTINATION lib/${PROJECT_NAME}
-    RENAME camera_pub
 )
 
 if(BUILD_TESTING)
