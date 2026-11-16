@@ -138,7 +138,7 @@ AprilTagNode::AprilTagNode(const rclcpp::NodeOptions& options)
 #endif
     },
     pub_detections(create_publisher<apriltag_msgs::msg::AprilTagDetectionArray>("detections", rclcpp::QoS(1))),
-    pub_pose(create_publisher<geometry_msgs::msg::PoseStamped>("pose", rclcpp::QoS(1))),
+    pub_pose(create_publisher<geometry_msgs::msg::PoseStamped>("pose", rclcpp::QoS(1).best_effort())),
     tf_broadcaster(
 #ifdef tf2_ros_NODE_INTERFACE
         tf2_ros::TransformBroadcaster::RequiredInterfaces { *this }
