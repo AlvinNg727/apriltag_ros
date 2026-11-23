@@ -8,6 +8,15 @@
     world_frame: map
     pose_estimation_method: pnp
 
+    # Match the hardware detector settings in tags_36h11.yaml.
+    detector:
+      threads: 1
+      decimate: 1.0
+      blur: 0.0
+      refine: true
+      sharpening: 0.25
+      debug: false
+
     tag_bundle:
       frame: landing_bundle
       ids: [0, 1, 2, 3, 4, 5, 6, 7]
