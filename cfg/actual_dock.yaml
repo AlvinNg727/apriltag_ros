@@ -10,11 +10,16 @@
 
     tag_bundle:
       frame: landing_bundle
-      ids: [0, 1, 2, 3]
+      ids: [0, 1, 2, 3, 4, 5, 6, 7]
+      sizes: [0.28, 0.28, 0.28, 0.28, 0.08, 0.08, 0.08, 0.08] # Black square sizes in metres.
       positions: # Tag centres relative to the opening centre in the tag plane.
         "0": [0.325, 0.325, 0.0]
         "1": [0.325, -0.325, 0.0]
         "2": [-0.325, -0.325, 0.0]
         "3": [-0.325, 0.325, 0.0]
+        "4": [0.2, 0.0, 0.0]
+        "5": [0.0, -0.2, 0.0]
+        "6": [-0.2, 0.0, 0.0]
+        "7": [0.0, 0.2, 0.0]
       position: [5.0, 0.0, 0.0101] # Match the dock pose in actual_dock.sdf.
       orientation: [0.0, 0.0, 0.0]
