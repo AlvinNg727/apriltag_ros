@@ -1,0 +1,20 @@
+/**:
+  ros__parameters:
+    image_transport: raw
+    family: 36h11
+    size: 0.28 # Black square of the 0.35 m print, excluding the white border.
+    max_hamming: 0
+    qos_profile: sensor_data
+    world_frame: map
+    pose_estimation_method: pnp
+
+    tag_bundle:
+      frame: landing_bundle
+      ids: [0, 1, 2, 3]
+      positions: # Tag centres relative to the opening centre in the tag plane.
+        "0": [0.325, 0.325, 0.0]
+        "1": [0.325, -0.325, 0.0]
+        "2": [-0.325, -0.325, 0.0]
+        "3": [-0.325, 0.325, 0.0]
+      position: [5.0, 0.0, 0.0101] # Match the dock pose in actual_dock.sdf.
+      orientation: [0.0, 0.0, 0.0]
