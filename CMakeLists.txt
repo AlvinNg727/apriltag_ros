@@ -122,6 +122,7 @@ target_link_libraries(AprilTagNode
     apriltag::apriltag
     tags
     pose_estimation
+    opencv_imgproc
     ${apriltag_msgs_TARGETS}
     ${sensor_msgs_TARGETS}
     cv_bridge::cv_bridge

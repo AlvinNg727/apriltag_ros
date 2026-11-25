@@ -3,6 +3,7 @@
     image_transport: raw # image format
     family: 36h11 # tag family name
     size: 0.2 # tag edge size in meter
+    debug_image: false # Set true to publish annotated frames on /apriltag/debug_image.
     max_hamming: 0 # maximum allowed hamming distance (corrected bits)
     qos_profile: sensor_data # optional qos_profile, "sensor_data", "default", or "system_default"
     world_frame: map # optional world frame name for tag positions

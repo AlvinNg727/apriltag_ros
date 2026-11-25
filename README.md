@@ -15,6 +15,9 @@ The node subscribes via a `image_transport::CameraSubscriber` to rectified image
 ### Publisher:
 - `/tf` (type: `tf2_msgs/msg/TFMessage`)
 - `detections` (type: `apriltag_msgs/msg/AprilTagDetectionArray`)
+- `debug_image` (`sensor_msgs/msg/Image`) shows the detector's grayscale input with a centered white ID on each accepted tag. From decoded corner 0, the red edge runs toward corner 1 along tag +X, and the green edge runs toward corner 3 along tag +Y. The other two edges are blue. The outline follows each tag’s orientation and perspective, including individual tags in a bundle. Frames with no accepted tags show the input alone.
+
+In the hardware and Gazebo launches, run `ros2 param set /apriltag/apriltag debug_image true` and select `/apriltag/debug_image` in an image viewer. Set the parameter to `false` to stop publishing.
 
 The camera intrinsics `P` in `CameraInfo` are used to compute the marker tag pose `T` from the homography `H`. The image and the camera intrinsics need to have the same timestamp.
 
@@ -33,6 +36,7 @@ apriltag:                 # node name
     family: 36h11         # tag family name: 16h5, 25h9, 36h11
     size: 1.0             # default tag edge size in meter
     profile: false        # print profiling information to stdout
+    debug_image: false    # publish annotated frames when a viewer is subscribed
 
     # tuning of detection (defaults)
     max_hamming: 0        # maximum allowed hamming distance (corrected bits)

@@ -3,6 +3,7 @@
     image_transport: raw
     family: 36h11
     size: 0.28 # Black square of the 0.35 m print, excluding the white border.
+    debug_image: false # Set true to publish annotated frames on /apriltag/debug_image.
     max_hamming: 0
     qos_profile: sensor_data
     world_frame: map
