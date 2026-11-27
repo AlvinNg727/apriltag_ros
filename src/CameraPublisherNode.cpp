@@ -126,11 +126,16 @@ private:
         const auto stamp = get_clock()->now();
 
         cv::Mat gray;
-        if(frame.channels() == 3) {
+        if(frame.type() == CV_8UC3) {
             cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
         }
-        else {
+        else if(frame.type() == CV_8UC1) {
             gray = frame;
+        }
+        else {
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                                 "Unsupported camera frame type %d, expected 8-bit grayscale or BGR", frame.type());
+            return;
         }
 
         cv_bridge::CvImage img;

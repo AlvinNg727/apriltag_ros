@@ -14,6 +14,7 @@
 #include <opencv2/imgproc.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
+#include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -292,6 +293,20 @@ static void drawTagDetection(cv::Mat& image, const apriltag_detection_t& tag)
 void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_img,
                             const sensor_msgs::msg::CameraInfo::ConstSharedPtr& msg_ci)
 {
+    if(msg_img->width == 0 || msg_img->height == 0 || msg_img->data.empty()) { return; }
+
+    // AprilTag reads 8-bit grayscale. An explicit 8UC1 image has the same pixel layout as mono8.
+    namespace enc = sensor_msgs::image_encodings;
+    cv_bridge::CvImageConstPtr gray;
+    try {
+        const auto& encoding = msg_img->encoding == enc::TYPE_8UC1 ? enc::TYPE_8UC1 : enc::MONO8;
+        gray = cv_bridge::toCvShare(msg_img, encoding);
+    }
+    catch(const cv_bridge::Exception& error) {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "Skipping invalid AprilTag image: %s", error.what());
+        return;
+    }
+
     // camera intrinsics for rectified images
     const std::array<double, 4> intrinsics = {msg_ci->p[0], msg_ci->p[5], msg_ci->p[2], msg_ci->p[6]};
 
@@ -303,9 +318,7 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
         RCLCPP_WARN_STREAM(get_logger(), "The camera is not calibrated! Set 'pose_estimation_method' to \"\" (empty) to disable pose estimation and this warning.");
     }
 
-    // convert to 8bit monochrome image
-    const cv::Mat img_uint8 = cv_bridge::toCvShare(msg_img, "mono8")->image;
-
+    const auto& img_uint8 = gray->image;
     image_u8_t im{img_uint8.cols, img_uint8.rows, static_cast<int>(img_uint8.step[0]), img_uint8.data};
 
     // detect tags
@@ -526,7 +539,7 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
 
     pub_detections->publish(msg_detections);
     if(!annotated.empty()) {
-        pub_debug_image->publish(*cv_bridge::CvImage(msg_img->header, "bgr8", annotated).toImageMsg());
+        pub_debug_image->publish(*cv_bridge::CvImage(msg_img->header, enc::BGR8, annotated).toImageMsg());
     }
 
     if(estimate_pose != nullptr)

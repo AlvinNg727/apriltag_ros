@@ -2,6 +2,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 from launch import LaunchDescription
@@ -15,6 +16,11 @@ def generate_launch_description():
     config_path = DeclareLaunchArgument(
         "config_path",
         default_value="tags_36h11.yaml",
+    )
+    debug_image = DeclareLaunchArgument(
+        "debug_image",
+        default_value="true",
+        description="Publish the annotated AprilTag image when subscribed.",
     )
 
     container = ComposableNodeContainer(
@@ -60,10 +66,15 @@ def generate_launch_description():
                             LaunchConfiguration("config_path"),
                         ]
                     ),
+                    {
+                        "debug_image": ParameterValue(
+                            LaunchConfiguration("debug_image"), value_type=bool
+                        ),
+                    },
                 ],
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
         ],
     )
 
-    return LaunchDescription([device, config_path, container])
+    return LaunchDescription([device, config_path, debug_image, container])
