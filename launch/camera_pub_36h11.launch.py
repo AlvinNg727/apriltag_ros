@@ -1,4 +1,4 @@
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
@@ -8,20 +8,11 @@ from launch_ros.substitutions import FindPackageShare
 from launch import LaunchDescription
 
 
-def generate_launch_description():
-    device = DeclareLaunchArgument(
-        "device",
-        default_value="/dev/v4l/by-id/usb-TSTC_USB20_WEB_CAMERA_TSTC_USB20_WEB_CAMERA_01.00.00-video-index0",
-    )
-    config_path = DeclareLaunchArgument(
-        "config_path",
-        default_value="tags_36h11.yaml",
-    )
-    debug_image = DeclareLaunchArgument(
-        "debug_image",
-        default_value="true",
-        description="Publish the annotated AprilTag image when subscribed.",
-    )
+def launch_nodes(context):
+    camera_parameters = [LaunchConfiguration("camera_config")]
+    device = LaunchConfiguration("device").perform(context)
+    if device:
+        camera_parameters.append({"video_device": ParameterValue(device, value_type=str)})
 
     container = ComposableNodeContainer(
         name="apriltag_container",
@@ -34,7 +25,7 @@ def generate_launch_description():
                 plugin="CameraPublisherNode",
                 name="camera_publisher",
                 namespace="down_camera",
-                parameters=[{"video_device": LaunchConfiguration("device")}],
+                parameters=camera_parameters,
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
             ComposableNode(
@@ -77,4 +68,30 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription([device, config_path, debug_image, container])
+    return [container]
+
+
+def generate_launch_description():
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument(
+                "camera_config",
+                default_value=PathJoinSubstitution(
+                    [FindPackageShare("apriltag_ros"), "cfg", "camera", "down_camera_params.yaml"]
+                ),
+                description="ROS parameters file for the down-facing camera publisher.",
+            ),
+            DeclareLaunchArgument(
+                "device",
+                default_value="",
+                description="Override the video device in the camera parameters file.",
+            ),
+            DeclareLaunchArgument("config_path", default_value="tags_36h11.yaml"),
+            DeclareLaunchArgument(
+                "debug_image",
+                default_value="true",
+                description="Publish the annotated AprilTag image when subscribed.",
+            ),
+            OpaqueFunction(function=launch_nodes),
+        ]
+    )

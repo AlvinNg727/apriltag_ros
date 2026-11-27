@@ -7,6 +7,7 @@
 // then save the result over apriltag_ros/cfg/camera/down_camera.yaml.
 
 #include <chrono>
+#include <cmath>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -28,30 +29,40 @@
 
 namespace
 {
+    struct CaptureSettings {
+        std::string device;
+        std::string pixel_format;
+        int width;
+        int height;
+        double framerate;
+        int auto_exposure;
+        int brightness;
+        int saturation;
+        int exposure;
+        int gain;
+    };
 
     // Opens a V4L2 camera and configures the capture format.
     class V4L2Capture {
     public:
-        V4L2Capture(const std::string& device, int width, int height, double fps) : cap_(device, cv::CAP_V4L2)
+        explicit V4L2Capture(const CaptureSettings& settings) : cap_(settings.device, cv::CAP_V4L2)
         {
             if(!cap_.isOpened()) {
-                throw std::runtime_error("Could not open camera " + device + " via V4L2");
+                throw std::runtime_error("Could not open camera " + settings.device + " via V4L2");
             }
 
-            // Set MJPEG format first
-            cap_.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
-            cap_.set(cv::CAP_PROP_FRAME_WIDTH, width);
-            cap_.set(cv::CAP_PROP_FRAME_HEIGHT, height);
-            cap_.set(cv::CAP_PROP_FPS, fps);
+            // Set the capture format before selecting the resolution and frame rate.
+            const auto& format = settings.pixel_format;
+            cap_.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc(format[0], format[1], format[2], format[3]));
+            cap_.set(cv::CAP_PROP_FRAME_WIDTH, settings.width);
+            cap_.set(cv::CAP_PROP_FRAME_HEIGHT, settings.height);
+            cap_.set(cv::CAP_PROP_FPS, settings.framerate);
 
-            // Disable auto-exposure to prevent frame rate drops in low light
-            cap_.set(cv::CAP_PROP_AUTO_EXPOSURE, 1);
-
-            // Manual image controls for the new camera
-            cap_.set(cv::CAP_PROP_BRIGHTNESS, 0);
-            cap_.set(cv::CAP_PROP_SATURATION, 0);
-            cap_.set(cv::CAP_PROP_EXPOSURE, 10000);
-            cap_.set(cv::CAP_PROP_GAIN, 0);
+            cap_.set(cv::CAP_PROP_AUTO_EXPOSURE, settings.auto_exposure);
+            cap_.set(cv::CAP_PROP_BRIGHTNESS, settings.brightness);
+            cap_.set(cv::CAP_PROP_SATURATION, settings.saturation);
+            cap_.set(cv::CAP_PROP_EXPOSURE, settings.exposure);
+            cap_.set(cv::CAP_PROP_GAIN, settings.gain);
         }
 
         V4L2Capture(const V4L2Capture&) = delete;
@@ -72,20 +83,36 @@ class CameraPublisherNode : public rclcpp::Node {
 public:
     explicit CameraPublisherNode(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) : Node("camera_publisher", options)
     {
-        const std::string video_device = declare_parameter<std::string>(
-            "video_device", "/dev/v4l/by-id/usb-TSTC_USB20_WEB_CAMERA_TSTC_USB20_WEB_CAMERA_01.00.00-video-index0");
-        const int width = declare_parameter("image_width", 1600);
-        const int height = declare_parameter("image_height", 1200);
-        const double framerate = declare_parameter("framerate", 60.0);
-        frame_id_ = declare_parameter<std::string>("frame_id", "down_camera_optical_frame");
+        rcl_interfaces::msg::ParameterDescriptor startup_only;
+        startup_only.read_only = true;
 
-        if(framerate <= 0.0) {
-            throw std::invalid_argument("Parameter 'framerate' must be positive");
+        CaptureSettings settings{};
+        settings.device = declare_parameter<std::string>(
+            "video_device", "/dev/v4l/by-id/usb-TSTC_USB20_WEB_CAMERA_TSTC_USB20_WEB_CAMERA_01.00.00-video-index0", startup_only);
+        settings.pixel_format = declare_parameter<std::string>("pixel_format", "MJPG", startup_only);
+        settings.width = declare_parameter("image_width", 1600, startup_only);
+        settings.height = declare_parameter("image_height", 1200, startup_only);
+        settings.framerate = declare_parameter("framerate", 60.0, startup_only);
+        settings.auto_exposure = declare_parameter("auto_exposure", 1, startup_only);
+        settings.brightness = declare_parameter("brightness", 0, startup_only);
+        settings.saturation = declare_parameter("saturation", 0, startup_only);
+        settings.exposure = declare_parameter("exposure", 10000, startup_only);
+        settings.gain = declare_parameter("gain", 0, startup_only);
+        frame_id_ = declare_parameter<std::string>("frame_id", "down_camera_optical_frame", startup_only);
+
+        if(settings.pixel_format.size() != 4) {
+            throw std::invalid_argument("Parameter 'pixel_format' must be a four-character V4L2 format code");
+        }
+        if(settings.width <= 0 || settings.height <= 0) {
+            throw std::invalid_argument("Parameters 'image_width' and 'image_height' must be positive");
+        }
+        if(!std::isfinite(settings.framerate) || settings.framerate <= 0.0) {
+            throw std::invalid_argument("Parameter 'framerate' must be finite and positive");
         }
 
-        const std::string camera_name = declare_parameter<std::string>("camera_name", "down_camera");
+        const std::string camera_name = declare_parameter<std::string>("camera_name", "down_camera", startup_only);
         const std::string camera_info_url = declare_parameter<std::string>(
-            "camera_info_url", "package://apriltag_ros/cfg/camera/down_camera.yaml");
+            "camera_info_url", "package://apriltag_ros/cfg/camera/down_camera.yaml", startup_only);
 
 #ifdef image_transport_QoS
         const rclcpp::QoS qos = rclcpp::SensorDataQoS();
@@ -105,13 +132,13 @@ public:
             RCLCPP_WARN(get_logger(), "Camera is uncalibrated, publishing null CameraInfo.");
         }
 
-        cap_ = std::make_unique<V4L2Capture>(video_device, width, height, framerate);
+        cap_ = std::make_unique<V4L2Capture>(settings);
 
         const auto period =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(1.0 / framerate));
+            std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(1.0 / settings.framerate));
         timer_ = create_wall_timer(period, [this]() { publishFrame(); });
 
-        RCLCPP_INFO(get_logger(), "Publishing %s on %s/image_raw", video_device.c_str(), get_namespace());
+        RCLCPP_INFO(get_logger(), "Publishing %s on %s/image_raw", settings.device.c_str(), get_namespace());
     }
 
 private:

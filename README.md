@@ -25,6 +25,20 @@ The tag poses are published on the standard TF topic `/tf` with the header set t
 
 ## Configuration
 
+### Hardware camera
+
+The hardware bringup and `camera_pub_calibration.launch.py` load [down_camera_params.yaml](cfg/camera/down_camera_params.yaml). It sets the video device, pixel format, resolution, frame rate, exposure mode, exposure, brightness, saturation, gain, and camera metadata. The capture controls use V4L2 values.
+
+The camera reads these parameters at startup. With a symlink install, edit the source YAML and restart the launch. You can also point bringup at your own file and edit it between launches without rebuilding.
+
+```sh
+ros2 launch drone_bringup bringup.launch.py camera_config:=/absolute/path/to/camera_params.yaml
+```
+
+`device:=/dev/video0` overrides `video_device` from the YAML. When changing the resolution, set `camera_info_url` to the calibration for that resolution.
+
+### AprilTag detector
+
 The node is configured via a yaml configurations file. For the complete ROS yaml parameter file syntax, see: https://github.com/ros2/rcl/tree/master/rcl_yaml_param_parser.
 
 The configuration file has the format:

@@ -1,0 +1,15 @@
+/down_camera/camera_publisher:
+  ros__parameters:
+    video_device: /dev/v4l/by-id/usb-TSTC_USB20_WEB_CAMERA_TSTC_USB20_WEB_CAMERA_01.00.00-video-index0
+    pixel_format: "MJPG" # V4L2 FourCC
+    image_width: 1600
+    image_height: 1200
+    framerate: 60.0
+    auto_exposure: 1 # V4L2 exposure mode, 1 is manual
+    brightness: 0
+    saturation: 0
+    exposure: 10000
+    gain: 0
+    frame_id: down_camera_optical_frame
+    camera_name: down_camera
+    camera_info_url: package://apriltag_ros/cfg/camera/down_camera.yaml
