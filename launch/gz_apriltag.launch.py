@@ -25,7 +25,7 @@ def _setup(context):
                     "cfg",
                     f"{world}.yaml",
                 ),
-                {"use_sim_time": True},
+                {"use_sim_time": True, "debug_image": True},
             ],
         ),
     ]

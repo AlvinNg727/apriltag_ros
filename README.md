@@ -17,7 +17,7 @@ The node subscribes via a `image_transport::CameraSubscriber` to rectified image
 - `detections` (type: `apriltag_msgs/msg/AprilTagDetectionArray`)
 - `debug_image` (`sensor_msgs/msg/Image`, encoding `bgr8`) shows the detector's grayscale input with a centered white ID on each accepted tag. From decoded corner 0, the red edge runs toward corner 1 along tag +X, and the green edge runs toward corner 3 along tag +Y. The other two edges are blue. The outline follows each tag’s orientation and perspective, including individual tags in a bundle. Frames with no accepted tags show the input alone.
 
-The hardware camera launch used by `ros2 launch drone_bringup bringup.launch.py` enables the overlay by default. Select `/apriltag/debug_image` in an image viewer, or pass `debug_image:=false` at launch to disable it. In Gazebo, run `ros2 param set /apriltag/apriltag debug_image true` to enable the overlay.
+The Gazebo detector and the hardware camera launch used by `ros2 launch drone_bringup bringup.launch.py` enable the overlay by default. The Gazebo dock landing launch shows `/apriltag/debug_image` in the **AprilTag Debug Image** display in RViz. On hardware, select the same topic in an image viewer. To disable the overlay, pass `debug_image:=false` to the hardware camera launch or run `ros2 param set /apriltag/apriltag debug_image false` for a running detector.
 
 The camera intrinsics `P` in `CameraInfo` are used to compute the marker tag pose `T` from the homography `H`. The image and the camera intrinsics need to have the same timestamp.
 
